@@ -65,7 +65,7 @@ class SyncManager {
             _simulateOneTransientFailure = false;
             throw Exception("Simulated transient failure");
           }
-          if (action.type == "delete_note") {
+          if (action.type == SyncActionType.deleteNote) {
             await firestore.collection("notes").doc(noteId).delete();
           } else {
             await firestore

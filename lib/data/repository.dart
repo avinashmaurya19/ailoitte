@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import 'db_helper.dart';
@@ -29,15 +30,15 @@ class NoteRepository {
 
     await db.insertNote(note.toMap());
     await _enqueueSyncAction(
-      type: "add_note",
+      type: SyncActionType.addNote,
       note: note,
       idempotencyKey: buildIdempotencyKey(
-        type: "add_note",
+        type: SyncActionType.addNote,
         noteId: note.id,
         timestampMs: now,
       ),
     );
-    await sync.processQueue();
+    _triggerSyncInBackground();
   }
 
   Future<void> toggleFavorite(String noteId) async {
@@ -55,40 +56,46 @@ class NoteRepository {
 
     await db.insertNote(updated.toMap());
     await _enqueueSyncAction(
-      type: "toggle_favorite",
+      type: SyncActionType.toggleFavorite,
       note: updated,
       idempotencyKey: buildIdempotencyKey(
-        type: "toggle_favorite",
+        type: SyncActionType.toggleFavorite,
         noteId: updated.id,
         timestampMs: now,
       ),
     );
-    await sync.processQueue();
+    _triggerSyncInBackground();
   }
 
   Future<void> deleteNote(String noteId) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await db.deleteNote(noteId);
+
+    // Collapse unsynced actions for this note so "add -> delete" offline
+    // does not later recreate the note when queue order/timing varies.
+    await db.deleteQueueByNoteId(noteId);
+
     await db.insertQueue({
       "id": buildIdempotencyKey(
-        type: "delete_note",
+        type: SyncActionType.deleteNote,
         noteId: noteId,
         timestampMs: now,
       ),
       "note_id": noteId,
-      "type": "delete_note",
+      "type": SyncActionType.deleteNote,
       "payload": jsonEncode({"id": noteId, "updated_at": now}),
       "retry_count": 0,
       "status": "pending",
       "created_at": now,
     });
-    await sync.processQueue();
+    _triggerSyncInBackground();
   }
 
   Future<void> refreshFromRemote() async {
     final snapshot = await firestore.collection("notes").get();
     final localNotes = await getLocalNotes();
     final localById = {for (final note in localNotes) note.id: note};
+    final pendingDeleteNoteIds = await db.getPendingDeleteNoteIds();
     final upserts = <Map<String, dynamic>>[];
 
     for (final doc in snapshot.docs) {
@@ -101,6 +108,9 @@ class NoteRepository {
             ? remote["updated_at"] as int
             : 0,
       );
+      if (pendingDeleteNoteIds.contains(remoteNote.id)) {
+        continue;
+      }
       final local = localById[remoteNote.id];
 
       // LWW conflict strategy: newest updated_at wins.
@@ -142,5 +152,9 @@ class NoteRepository {
       "status": "pending",
       "created_at": DateTime.now().millisecondsSinceEpoch,
     });
+  }
+
+  void _triggerSyncInBackground() {
+    unawaited(sync.processQueue());
   }
 }

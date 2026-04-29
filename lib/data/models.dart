@@ -72,3 +72,9 @@ class SyncAction {
     createdAt: map["created_at"] ?? 0,
   );
 }
+
+class SyncActionType {
+  static const addNote = "add_note";
+  static const toggleFavorite = "toggle_favorite";
+  static const deleteNote = "delete_note";
+}

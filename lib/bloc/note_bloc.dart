@@ -6,10 +6,10 @@ import 'note_state.dart';
 import '../data/repository.dart';
 
 class NoteBloc extends Bloc<NoteEvent, NoteState> {
-  final NoteRepository repo;
+  final NoteRepository repository;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
-  NoteBloc(this.repo) : super(NoteState.initial()) {
+  NoteBloc(this.repository) : super(NoteState.initial()) {
     on<LoadNotes>(_onLoadNotes);
     on<AddNote>(_onAddNote);
     on<ToggleFavorite>(_onToggleFavorite);
@@ -28,25 +28,14 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
 
   Future<void> _onLoadNotes(LoadNotes event, Emitter<NoteState> emit) async {
     emit(state.copyWith(isLoading: true));
-    final notes = await repo.getLocalNotes();
-    final pending = await repo.getPendingQueueSize();
-    final metrics = repo.sync.metrics.value;
-    emit(
-      state.copyWith(
-        isLoading: false,
-        notes: notes,
-        pendingQueueSize: pending,
-        syncSuccessCount: metrics.successCount,
-        syncFailCount: metrics.failCount,
-      ),
-    );
+    await _reloadLocalState(emit, isLoading: false);
     add(RefreshRemoteNotes());
   }
 
   Future<void> _onAddNote(AddNote event, Emitter<NoteState> emit) async {
     final content = event.content.trim();
     if (content.isEmpty) return;
-    await repo.addNote(content);
+    await repository.addNote(content);
     add(LoadNotes());
   }
 
@@ -54,12 +43,12 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     ToggleFavorite event,
     Emitter<NoteState> emit,
   ) async {
-    await repo.toggleFavorite(event.noteId);
+    await repository.toggleFavorite(event.noteId);
     add(LoadNotes());
   }
 
   Future<void> _onDeleteNote(DeleteNote event, Emitter<NoteState> emit) async {
-    await repo.deleteNote(event.noteId);
+    await repository.deleteNote(event.noteId);
     add(LoadNotes());
   }
 
@@ -68,14 +57,8 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     Emitter<NoteState> emit,
   ) async {
     try {
-      await repo.refreshFromRemote();
-      final refreshed = await repo.getLocalNotes();
-      emit(
-        state.copyWith(
-          notes: refreshed,
-          lastMessage: "Background refresh complete",
-        ),
-      );
+      await repository.refreshFromRemote();
+      await _reloadLocalState(emit, lastMessage: "Background refresh complete");
     } catch (_) {
       emit(state.copyWith(lastMessage: "Background refresh failed (offline)"));
     } finally {
@@ -85,24 +68,15 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
 
   Future<void> _onSyncNotes(SyncNotes event, Emitter<NoteState> emit) async {
     emit(state.copyWith(isSyncing: true));
-    await repo.syncQueue();
-    final pending = await repo.getPendingQueueSize();
-    final metrics = repo.sync.metrics.value;
-    emit(
-      state.copyWith(
-        isSyncing: false,
-        pendingQueueSize: pending,
-        syncSuccessCount: metrics.successCount,
-        syncFailCount: metrics.failCount,
-      ),
-    );
+    await repository.syncQueue();
+    await _reloadLocalState(emit, isSyncing: false);
   }
 
   Future<void> _onSimulateSingleSyncFailure(
     SimulateSingleSyncFailure event,
     Emitter<NoteState> emit,
   ) async {
-    repo.sync.enableSingleFailureSimulation();
+    repository.sync.enableSingleFailureSimulation();
     emit(
       state.copyWith(lastMessage: "Next sync call will fail once, then retry"),
     );
@@ -112,18 +86,34 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     ConnectivityRestored event,
     Emitter<NoteState> emit,
   ) async {
-    await repo.syncQueue();
-    final pending = await repo.getPendingQueueSize();
-    final metrics = repo.sync.metrics.value;
-    emit(
-      state.copyWith(
-        pendingQueueSize: pending,
-        syncSuccessCount: metrics.successCount,
-        syncFailCount: metrics.failCount,
-        lastMessage: "Network restored: queued actions synced",
-      ),
+    await repository.syncQueue();
+    await _reloadLocalState(
+      emit,
+      lastMessage: "Network restored: queued actions synced",
     );
     add(RefreshRemoteNotes());
+  }
+
+  Future<void> _reloadLocalState(
+    Emitter<NoteState> emit, {
+    bool? isLoading,
+    bool? isSyncing,
+    String? lastMessage,
+  }) async {
+    final notes = await repository.getLocalNotes();
+    final pendingQueueSize = await repository.getPendingQueueSize();
+    final metrics = repository.sync.metrics.value;
+    emit(
+      state.copyWith(
+        isLoading: isLoading ?? state.isLoading,
+        isSyncing: isSyncing ?? state.isSyncing,
+        notes: notes,
+        pendingQueueSize: pendingQueueSize,
+        syncSuccessCount: metrics.successCount,
+        syncFailCount: metrics.failCount,
+        lastMessage: lastMessage ?? state.lastMessage,
+      ),
+    );
   }
 
   @override

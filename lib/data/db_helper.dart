@@ -128,6 +128,11 @@ class DBHelper {
     await database.delete("sync_queue", where: "id=?", whereArgs: [id]);
   }
 
+  Future<void> deleteQueueByNoteId(String noteId) async {
+    final database = await db;
+    await database.delete("sync_queue", where: "note_id=?", whereArgs: [noteId]);
+  }
+
   Future<void> updateRetry(String id, int retry) async {
     final database = await db;
     await database.update(
@@ -154,5 +159,19 @@ class DBHelper {
       "SELECT COUNT(*) as count FROM sync_queue WHERE status = 'pending'",
     );
     return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<Set<String>> getPendingDeleteNoteIds() async {
+    final database = await db;
+    final rows = await database.query(
+      "sync_queue",
+      columns: ["note_id"],
+      where: "status = ? AND type = ?",
+      whereArgs: ["pending", "delete_note"],
+    );
+    return rows
+        .map((row) => row["note_id"]?.toString() ?? "")
+        .where((id) => id.isNotEmpty)
+        .toSet();
   }
 }

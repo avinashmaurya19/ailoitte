@@ -16,7 +16,7 @@ void main() async {
   final db = DBHelper();
   final sync = SyncManager(db);
   final repo = NoteRepository(db, sync);
-  runApp(MyApp(repo: repo));
+  runApp(DismissKeyboard(child: MyApp(repo: repo)));
 }
 
 class MyApp extends StatelessWidget {
@@ -26,6 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Offline First Notes',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
@@ -36,6 +37,25 @@ class MyApp extends StatelessWidget {
         create: (_) => NoteBloc(repo)..add(LoadNotes()),
         child: const HomePage(),
       ),
+    );
+  }
+}
+
+class DismissKeyboard extends StatelessWidget {
+  final Widget child;
+  const DismissKeyboard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        FocusScopeNode currentFocus = FocusScope.of(context);
+        if (!currentFocus.hasPrimaryFocus &&
+            currentFocus.focusedChild != null) {
+          FocusManager.instance.primaryFocus?.unfocus();
+        }
+      },
+      child: child,
     );
   }
 }
