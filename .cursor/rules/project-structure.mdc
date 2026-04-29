@@ -1,0 +1,15 @@
+---
+alwaysApply: true
+---
+
+lib/
+ ├── main.dart
+ ├── data/
+ │    ├── db_helper.dart
+ │    ├── models.dart
+ │    ├── repository.dart
+ │    └── sync_manager.dart
+ └── bloc/
+      ├── note_bloc.dart
+      ├── note_event.dart
+      └── note_state.dart

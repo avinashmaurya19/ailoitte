@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "124622723879",
+    "project_id": "ailoitte-d96b3",
+    "storage_bucket": "ailoitte-d96b3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:124622723879:android:d07f870e53438e9321e702",
+        "android_client_info": {
+          "package_name": "com.example.ailoitte"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFaByrDAKK7JnffBKopxassaObX7kkkHs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
