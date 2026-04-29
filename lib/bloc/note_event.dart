@@ -14,6 +14,11 @@ class ToggleFavorite extends NoteEvent {
   ToggleFavorite(this.noteId);
 }
 
+class DeleteNote extends NoteEvent {
+  final String noteId;
+  DeleteNote(this.noteId);
+}
+
 class RefreshRemoteNotes extends NoteEvent {
   final Completer<void>? completer;
   RefreshRemoteNotes({this.completer});

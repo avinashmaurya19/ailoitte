@@ -65,10 +65,14 @@ class SyncManager {
             _simulateOneTransientFailure = false;
             throw Exception("Simulated transient failure");
           }
-          await firestore
-              .collection("notes")
-              .doc(noteId) // idempotency key is document id + set merge
-              .set(data, SetOptions(merge: true));
+          if (action.type == "delete_note") {
+            await firestore.collection("notes").doc(noteId).delete();
+          } else {
+            await firestore
+                .collection("notes")
+                .doc(noteId) // idempotency key is document id + set merge
+                .set(data, SetOptions(merge: true));
+          }
 
           await db.deleteQueue(action.id);
           metrics.value = metrics.value.copyWith(

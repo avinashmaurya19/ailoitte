@@ -98,6 +98,11 @@ class DBHelper {
     await batch.commit(noResult: true);
   }
 
+  Future<void> deleteNote(String id) async {
+    final database = await db;
+    await database.delete("notes", where: "id=?", whereArgs: [id]);
+  }
+
   // Queue
   Future<void> insertQueue(Map<String, dynamic> action) async {
     final database = await db;

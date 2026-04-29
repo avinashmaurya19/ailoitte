@@ -13,6 +13,7 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     on<LoadNotes>(_onLoadNotes);
     on<AddNote>(_onAddNote);
     on<ToggleFavorite>(_onToggleFavorite);
+    on<DeleteNote>(_onDeleteNote);
     on<RefreshRemoteNotes>(_onRefreshRemoteNotes);
     on<SyncNotes>(_onSyncNotes);
     on<SimulateSingleSyncFailure>(_onSimulateSingleSyncFailure);
@@ -54,6 +55,11 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     Emitter<NoteState> emit,
   ) async {
     await repo.toggleFavorite(event.noteId);
+    add(LoadNotes());
+  }
+
+  Future<void> _onDeleteNote(DeleteNote event, Emitter<NoteState> emit) async {
+    await repo.deleteNote(event.noteId);
     add(LoadNotes());
   }
 

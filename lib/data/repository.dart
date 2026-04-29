@@ -66,6 +66,25 @@ class NoteRepository {
     await sync.processQueue();
   }
 
+  Future<void> deleteNote(String noteId) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.deleteNote(noteId);
+    await db.insertQueue({
+      "id": buildIdempotencyKey(
+        type: "delete_note",
+        noteId: noteId,
+        timestampMs: now,
+      ),
+      "note_id": noteId,
+      "type": "delete_note",
+      "payload": jsonEncode({"id": noteId, "updated_at": now}),
+      "retry_count": 0,
+      "status": "pending",
+      "created_at": now,
+    });
+    await sync.processQueue();
+  }
+
   Future<void> refreshFromRemote() async {
     final snapshot = await firestore.collection("notes").get();
     final localNotes = await getLocalNotes();

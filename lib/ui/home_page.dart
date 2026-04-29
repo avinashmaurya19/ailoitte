@@ -149,8 +149,9 @@ class _HomePageState extends State<HomePage> {
                                         margin: EdgeInsets.zero,
                                         elevation: 0,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(14),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
                                         ),
                                         child: ListTile(
                                           contentPadding:
@@ -169,20 +170,77 @@ class _HomePageState extends State<HomePage> {
                                               context,
                                             ).textTheme.bodySmall,
                                           ),
-                                          trailing: IconButton(
-                                            onPressed: () {
-                                              bloc.add(
-                                                ToggleFavorite(note.id),
-                                              );
-                                            },
-                                            icon: Icon(
-                                              note.isFavorite
-                                                  ? Icons.favorite
-                                                  : Icons.favorite_border,
-                                              color: note.isFavorite
-                                                  ? Colors.red
-                                                  : Colors.grey.shade600,
-                                            ),
+                                          trailing: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                onPressed: () {
+                                                  bloc.add(
+                                                    ToggleFavorite(note.id),
+                                                  );
+                                                },
+                                                icon: Icon(
+                                                  note.isFavorite
+                                                      ? Icons.favorite
+                                                      : Icons.favorite_border,
+                                                  color: note.isFavorite
+                                                      ? Colors.red
+                                                      : Colors.grey.shade600,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: () async {
+                                                  final shouldDelete =
+                                                      await showDialog<bool>(
+                                                        context: context,
+                                                        builder: (dialogContext) {
+                                                          return AlertDialog(
+                                                            title: const Text(
+                                                              "Delete note?",
+                                                            ),
+                                                            content: const Text(
+                                                              "This will remove the note locally and sync deletion to Firestore.",
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () {
+                                                                  Navigator.of(
+                                                                    dialogContext,
+                                                                  ).pop(false);
+                                                                },
+                                                                child:
+                                                                    const Text(
+                                                                      "Cancel",
+                                                                    ),
+                                                              ),
+                                                              FilledButton(
+                                                                onPressed: () {
+                                                                  Navigator.of(
+                                                                    dialogContext,
+                                                                  ).pop(true);
+                                                                },
+                                                                child:
+                                                                    const Text(
+                                                                      "Delete",
+                                                                    ),
+                                                              ),
+                                                            ],
+                                                          );
+                                                        },
+                                                      );
+
+                                                  if (shouldDelete == true) {
+                                                    bloc.add(
+                                                      DeleteNote(note.id),
+                                                    );
+                                                  }
+                                                },
+                                                icon: const Icon(
+                                                  Icons.delete_outline,
+                                                ),
+                                                color: Colors.red.shade400,
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );
