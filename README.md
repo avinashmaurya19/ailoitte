@@ -60,8 +60,6 @@ observability.
 ## AI Prompt Log
 
 ### Prompt 1
-- **Prompt**
-  - "Can we use Firestore without authentication so anyone can post/fetch notes?"
 - **Accepted**
   - Yes for assignment scope; use open rules in Firestore console.
 - **Rejected**
@@ -99,7 +97,7 @@ Capture screenshots/log snippets for the following and attach in submission.
 
 ### Scenario C: Retry + Idempotency
 - Add or modify note.
-- Trigger "Simulate 1 Failure + Sync".
+- Keep internet unstable (toggle airplane mode quickly during sync), then tap `Sync Now`.
 - Verify one retry is scheduled in logs, then success/failure status changes.
 - Verify Firestore contains one final document per note ID (no duplicates).
 
